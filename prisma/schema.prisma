@@ -1,0 +1,86 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  role      Role     @default(STUDENT)
+  createdAt DateTime @default(now())
+  courses   Course[] @relation("instructor")
+  enrollments Enrollment[]
+  progress   Progress[]
+  certificates Certificate[]
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  imageUrl    String?
+  price       Float?
+  isPublished Boolean  @default(false)
+  categoryId  String?
+  instructorId String
+  instructor  User     @relation("instructor", fields: [instructorId], references: [id])
+  chapters    Chapter[]
+  enrollments Enrollment[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Chapter {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  videoUrl    String?
+  muxAssetId  String?
+  muxPlaybackId String?
+  position    Int
+  isPublished Boolean  @default(false)
+  isFree      Boolean  @default(false)
+  courseId     String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  quizzes     Quiz[]
+  progress    Progress[]
+}
+
+model Quiz {
+  id        String @id @default(uuid())
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  question  String
+  options   String[]
+  correctAnswer Int
+  points    Int    @default(10)
+}
+
+model Enrollment {
+  id       String @id @default(uuid())
+  userId   String
+  courseId  String
+  user     User   @relation(fields: [userId], references: [id])
+  course   Course @relation(fields: [courseId], references: [id])
+  createdAt DateTime @default(now())
+  @@unique([userId, courseId])
+}
+
+model Progress {
+  id          String  @id @default(uuid())
+  userId      String
+  chapterId   String
+  isCompleted Boolean @default(false)
+  user        User    @relation(fields: [userId], references: [id])
+  chapter     Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  @@unique([userId, chapterId])
+}
+
+model Certificate {
+  id       String   @id @default(uuid())
+  userId   String
+  courseId  String
+  issuedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id])
+}
+
+enum Role { STUDENT INSTRUCTOR ADMIN }
